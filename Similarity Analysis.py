@@ -10,7 +10,7 @@
 ### Finally, the last cell is this project's driver. That is where we will be putting the pieces of the puzzle together.
 
 
-# In[1]:
+# In[3]:
 
 
 # Imports. 'Requests' for https requests. 'BeautifulSoup' for html scraping. 'Pandas' for data analysis. 
@@ -18,6 +18,7 @@
 # 'nltk' for pre-processing main text. 're' for regex. 'scipy' for spacial cosine. 
 
 import requests
+import argparse
 import pandas as pd
 from bs4 import BeautifulSoup
 from sklearn.feature_extraction.text import CountVectorizer
@@ -33,6 +34,7 @@ from collections import Counter
 import copy
 from pathlib import Path
 import numpy as np
+import time
 
 
 
@@ -46,7 +48,7 @@ index2word_set = set(model.wv.index2word)
 count_vectorizer = CountVectorizer(stop_words='english')
 
 
-# In[10]:
+# In[4]:
 
 
 # Corpus class. This will hold all the article objects in our corpus and allow us to execute some corpus-wide methods.
@@ -58,7 +60,7 @@ class Corpus:
         self.corpus_stopwords = []
         self.D2Vmodel = None
         
-    def fill_corpus(self, mode):
+    def fill_corpus(self, size, mode):
         """Function: Fills corpus by getting related articles, starting with the main article and
            using the other articles that are found until the corpus meets the set size parameter.  
            ============================================================================
@@ -70,13 +72,11 @@ class Corpus:
            ----------
            No return. Corpus articles are stored in self.articles"""
         if(mode == "all_random"):
-            size = 200;
             while len(self.articles) < size:
                 art = WikiArticle("https://en.wikipedia.org/wiki/Special:Random")
                 self.articles.append(art)
                 
         if(mode == "all_related"):
-            size = 200;
             # Start filling corpus with artiles related to main article
             self.articles = self.main_article.get_related()
 
@@ -208,7 +208,7 @@ def mergeDict(dict1, dict2):
     return Counter(dict3)
 
 
-# In[3]:
+# In[5]:
 
 
 # wikiArticle class. Named 'wikiArticle' for lack of inspiration. Will hold all relevant data on an article. 
@@ -413,7 +413,7 @@ class WikiArticle:
             
 
 
-# In[4]:
+# In[6]:
 
 
 def jaccard_analysis(article_one, article_two):
@@ -433,7 +433,7 @@ def jaccard_analysis(article_one, article_two):
     return float(len(comparison)) / (len(a) + len(b) - len(comparison))
 
 
-# In[5]:
+# In[7]:
 
 
 def cosine_analysis(article_one_frequency, article_two_frequency):
@@ -464,7 +464,7 @@ def vec_cosine_analysis(a_vect, b_vect):
     
 
 
-# In[6]:
+# In[8]:
 
 
 def is_over_threshold(similarity, *args):
@@ -485,7 +485,7 @@ def is_over_threshold(similarity, *args):
     return (similarity >= threshold)
 
 
-# In[12]:
+# In[9]:
 
 
 ### Driver ###
@@ -494,28 +494,36 @@ def is_over_threshold(similarity, *args):
 
 # Initiate corpus with article of focus
 if __name__ == "__main__":
+    start = time.time()
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("size", type=int)
+    parser.add_argument("fill_type")
+    args = parser.parse_args()
     corpus = Corpus("https://en.wikipedia.org/wiki/IBM_mainframe")
-    corpus.fill_corpus("all_random")
+    corpus.fill_corpus(args.size, args.fill_type)
     corpus.filter_corpus_by_frequency()
 
-    results = corpus.similarity_analysis(True)
+    smartResults = corpus.similarity_analysis(True)
+    dumbResults = corpus.similarity_analysis(False)
+    end = time.time()
+    print("Took " + str(end - start) + "s to run")
+    fileOne = "multitiered_size_"  + str(args.size) + "_corpus_" +args.fill_type +".csv"
+    fileTwo = "regular_size_"  + str(args.size) + "_corpus_" +args.fill_type +".csv"
+    smartResults.to_csv(fileOne)
+    dumbResults.to_csv(fileTwo)
 
 
 # In[ ]:
 
 
-### Scratch Work ###
-##                ##
-# ================ #
 
-
-print(corpus.get_corpus())
 
 
 # In[9]:
 
 
-print(Out[7])
+
 
 
 # In[ ]:
