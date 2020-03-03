@@ -88,6 +88,22 @@ class Corpus:
                 if(related_articles != False):
                     self.articles.extend(self.articles[article_counter].get_related())
                 article_counter +=1
+                
+        if(mode=="50_50"):
+            #Start filling corpus with articles related to main article
+            article_counter = 0
+            self.articles = self.main_article.get_related()
+            while len(self.articles) < size/2:
+                related_articles = self.articles[article_counter].get_related()
+                if(related_articles != False):
+                    self.articles.extend(self.articles[article_counter].get_related())
+                article_counter +=1
+                
+            while len(self.articles) < size:
+                art = WikiArticle("https://en.wikipedia.org/wiki/Special:Random")
+                self.articles.append(art)
+            
+            
         
     def build_model(self):
         """Function: Analyzes all corpus against corpus main article and returns results in pandas dataframe.
