@@ -109,41 +109,9 @@ class Corpus:
                 self.articles.append(art)
         
         self.fill_type = mode
-            
-        
-    def build_model(self):
-        """Function: Analyzes all corpus against corpus main article and returns results in pandas dataframe.
-           ============================================================================
-           Parameters
-           ----------
-           None 
-
-           Returns
-           ----------
-           No return. Builds and trains doc2vec model and stores it in corpus object"""
-        if(path.exists("D2Vmodel")):
-            self.D2Vmodel = doc2vec.Doc2Vec.load("D2Vmodel")
-            
-        else:
-            corpus = []
-            self.main_article.get_main_text()
-            corpus.append(gensim.models.doc2vec.TaggedDocument(words=self.main_article.main_text, tags=[0]))
-            tag_counter = 0
-            for article in self.articles:
-                article.get_main_text()
-                corpus.append(gensim.models.doc2vec.TaggedDocument(words=article.main_text, tags=[tag_counter]))
-                tag_counter += 1
-
-            D2Vmodel = gensim.models.doc2vec.Doc2Vec(size=50, min_count=2, iter=10)
-            D2Vmodel.build_vocab(corpus)
-            D2Vmodel.train(corpus, total_examples=D2Vmodel.corpus_count, epochs=20)
-            self.D2Vmodel = D2Vmodel
-            D2Vmodel.save("D2Vmodel")
-            print ("Doc2vec model was made with \"" + self.fill_type + "\" corpus")
-        
                    
         
-    def similarity_analysis(self, smart):
+    def similarity_analysis(self, is_smart, d2v_model):
         """Function: Analyzes all corpus against corpus main article and returns results in pandas dataframe.
            ============================================================================
            Parameters
@@ -159,9 +127,6 @@ class Corpus:
         self.main_article.get_main_text()
         self.main_article.get_word_frequency()
         
-        ## Build and train model
-        self.build_model()
-        
         ## Initialize Pandas Dataframe to store results
         index = []
         for article in self.articles:
@@ -174,7 +139,7 @@ class Corpus:
         ## Actually do the analysis
         ndx = 1 ## index for d2v tagging purposes
         for article in self.articles:
-            results.loc[article.main_title] = self.main_article.similarity_analysis(article, smart, ndx, self.D2Vmodel)
+            results.loc[article.main_title] = self.main_article.similarity_analysis(article, is_smart, ndx, d2v_model)
             ndx = ndx + 1
         
         return results
@@ -253,7 +218,7 @@ class WikiArticle:
         self.word_frequency = {}
         
     
-    def similarity_analysis(self, article, smart, ndx, D2Vmodel):
+    def similarity_analysis(self, article, is_smart, ndx, d2v_model):
         """
         Function: To be used in Corpus class to perform analysis between main article and comparison article
         ============================================================================
@@ -265,7 +230,7 @@ class WikiArticle:
            ----------
            Returns Pandas series to be used in forming a dataframe result."""
         ## Check main title tier
-        if(smart == True):
+        if(is_smart == True):
             a_vec = self.w2v_vector(self.main_title);
             b_vec = article.w2v_vector(article.main_title);
             main_title_comparison = vec_cosine_analysis(a_vec, b_vec)
@@ -292,8 +257,8 @@ class WikiArticle:
         article.get_word_frequency()
         
         ## And now perform the main analysis 
-        a_vec = D2Vmodel.infer_vector(self.main_text)
-        b_vec = D2Vmodel.infer_vector(article.main_text)
+        a_vec = d2v_model.infer_vector(self.main_text)
+        b_vec = d2v_model.infer_vector(article.main_text)
         analysis = vec_cosine_analysis(a_vec, b_vec)
         return pd.Series({'Main Title Tier': main_title_comparison, 'Secondary Title Tier': secondary_title_comparison, 'Main Analysis':analysis})
         
@@ -398,7 +363,7 @@ class WikiArticle:
 
            Returns
            ----------
-           Returns <dict> Doc2Vec of pre-processed text."""
+           Returns <dict> of pre-processed text."""
         
         # Cleaing the text
         processed_article = text.lower()
@@ -440,6 +405,74 @@ class WikiArticle:
                 articles.append(WikiArticle("https://en.wikipedia.org"+link.get('href')))
 
             return articles
+            
+
+
+# In[ ]:
+
+
+## d2v and w2v model building methods.
+
+def build_d2v_model(corpus):
+    """Function: Builds d2v model for analysis. Model is loaded from file if it already exists.
+       ============================================================================
+       Parameters
+       ----------
+       Corpus to build model on (all_related preferably).
+
+       Returns
+       ----------
+       Builds, trains, and returns doc2vec model"""
+    if(path.exists("D2Vmodel")):
+        D2Vmodel = doc2vec.Doc2Vec.load("D2Vmodel")
+        return D2Vmodel
+
+    else:
+        training_corpus = []
+        corpus.main_article.get_main_text()
+        training_corpus.append(gensim.models.doc2vec.TaggedDocument(words=corpus.main_article.main_text, tags=[0]))
+        tag_counter = 0
+        for article in corpus.articles:
+            article.get_main_text()
+            training_corpus.append(gensim.models.doc2vec.TaggedDocument(words=article.main_text, tags=[tag_counter]))
+            tag_counter += 1
+
+        D2Vmodel = gensim.models.doc2vec.Doc2Vec(size=50, min_count=2, iter=10)
+        D2Vmodel.build_vocab(training_corpus)
+        D2Vmodel.train(training_corpus, total_examples=D2Vmodel.corpus_count, epochs=20)
+        D2Vmodel.save("D2Vmodel")
+        print ("Doc2vec model was made with all_related corpus")
+        return D2Vmodel
+        
+        
+def build_w2v_model(corpus):
+    """Function: Builds w2v model for analysis. Model is loaded from file if it already exists.
+           ============================================================================
+           Parameters
+           ----------
+           Corpus to build model on (all_related preferably).
+
+           Returns
+           ----------
+           Builds, trains, and returns word2vec model"""
+    if(path.exists("W2Vmodel")):
+        w2v_model = Word2Vec.load("W2Vmodel")
+        return w2v_model
+    
+    else: 
+        training_corpus = []
+        corpus.main_article.get_main_text()
+        for word in corpus.main_article.main_text:
+            training_corpus.append(word)
+            
+        for article in corpus.articles:
+            for word in article.main_text:
+                training_corpus.append(word)
+                
+        w2v_model = Word2Vec(sentences=training_corpus, min_count = 10)
+        w2v_model.save("W2Vmodel")
+        print("Word2Vec model was made with all_related corpus")
+        return w2v_model
             
 
 
@@ -542,6 +575,10 @@ if __name__ == "__main__":
     ## Issue #1 in https://github.com/danielobrien3/HBC-Text-Similarity-Analysis
     corpus.filter_corpus_by_frequency()
     
+    ## Loads model from file. The model is created if it does not yet exist. 
+    d2v_model = build_d2v_model(corpus_related)
+    w2v_model = build_w2v_model(corpus_related)
+    
     ## Get (multitiered AND regular analysis) results of each corpus
     smart_results_related = corpus_related.similarity_analysis(True)
     dumb_results_related = corpus_related.similarity_analysis(False)
@@ -555,10 +592,26 @@ if __name__ == "__main__":
     
     end = time.time()
     print("Took " + str(end - start) + "s to run")
-    fileOne = "multitiered_size_"  + str(args.size) + "_corpus_" +args.fill_type +".csv"
-    fileTwo = "regular_size_"  + str(args.size) + "_corpus_" +args.fill_type +".csv"
-    smart_results_related.to_csv(fileOne)
-    dumb_results_related.to_csv(fileTwo)
+    
+    ## Export results in csv files
+    # Create file names first.
+    smart_related_file = "multitiered_"  + str(args.size) + "_related.csv"
+    dumb_related_file = fileTwo = "regular_"  + str(args.size) + "_related.csv"
+    
+    smart_random_file = "multitiered_"  + str(args.size) + "_random.csv"
+    dumb_related_file = "regular_"  + str(args.size) + "_random.csv"
+    
+    smart_fifty_fifty_file = "multitiered_"  + str(args.size) + "_fifty_fifty.csv"
+    dumb_fifty_fifty_file = "regular_"  + str(args.size) + "_fifty_fifty.csv"
+    
+    smart_results_related.to_csv(smart_related_file)
+    dumb_results_related.to_csv(dumb_related_file)
+    
+    smart_results_random.to_csv(smart_random_file)
+    dumb_results_random.to_csv(dumb_random_file)
+    
+    smart_results_fifty.to_csv(smart_fifty_fifty_file)
+    dumb_results_fifty.to_csv(dumb_fifty_fifty_file)
 
 
 # In[ ]:
