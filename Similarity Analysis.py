@@ -276,7 +276,7 @@ class WikiArticle:
            Returns
            ----------
            Word2Vec average vector of provided text."""
-        num_features = 100;
+        num_features = model.wv.vectors.shape[1];
         featureVec = np.zeros((num_features,), dtype="float32")
         nwords = 0
 
