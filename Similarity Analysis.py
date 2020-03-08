@@ -35,6 +35,9 @@ import copy
 from pathlib import Path
 import numpy as np
 import time
+from os import path
+import argparse
+
 
 
 
@@ -59,6 +62,8 @@ class Corpus:
         self.articles = []
         self.corpus_stopwords = []
         self.D2Vmodel = None
+        self.W2Vmodel = None
+        self.fill_type = ""
         
     def fill_corpus(self, size, mode):
         """Function: Fills corpus by getting related articles, starting with the main article and
@@ -89,7 +94,7 @@ class Corpus:
                     self.articles.extend(self.articles[article_counter].get_related())
                 article_counter +=1
                 
-        if(mode=="50_50"):
+        if(mode=="fifty_fifty"):
             #Start filling corpus with articles related to main article
             article_counter = 0
             self.articles = self.main_article.get_related()
@@ -102,7 +107,8 @@ class Corpus:
             while len(self.articles) < size:
                 art = WikiArticle("https://en.wikipedia.org/wiki/Special:Random")
                 self.articles.append(art)
-            
+        
+        self.fill_type = mode
             
         
     def build_model(self):
@@ -115,19 +121,27 @@ class Corpus:
            Returns
            ----------
            No return. Builds and trains doc2vec model and stores it in corpus object"""
-        corpus = []
-        self.main_article.get_main_text()
-        corpus.append(gensim.models.doc2vec.TaggedDocument(words=self.main_article.main_text, tags=[0]))
-        tag_counter = 0
-        for article in self.articles:
-            article.get_main_text()
-            corpus.append(gensim.models.doc2vec.TaggedDocument(words=article.main_text, tags=[tag_counter]))
-            tag_counter += 1
+        if(path.exists("D2Vmodel")):
+            self.D2Vmodel = doc2vec.Doc2Vec.load("D2Vmodel")
             
-        D2Vmodel = gensim.models.doc2vec.Doc2Vec(size=50, min_count=2, iter=10)
-        D2Vmodel.build_vocab(corpus)
-        D2Vmodel.train(corpus, total_examples=D2Vmodel.corpus_count, epochs=20)
-        self.D2Vmodel = D2Vmodel            
+        else:
+            corpus = []
+            self.main_article.get_main_text()
+            corpus.append(gensim.models.doc2vec.TaggedDocument(words=self.main_article.main_text, tags=[0]))
+            tag_counter = 0
+            for article in self.articles:
+                article.get_main_text()
+                corpus.append(gensim.models.doc2vec.TaggedDocument(words=article.main_text, tags=[tag_counter]))
+                tag_counter += 1
+
+            D2Vmodel = gensim.models.doc2vec.Doc2Vec(size=50, min_count=2, iter=10)
+            D2Vmodel.build_vocab(corpus)
+            D2Vmodel.train(corpus, total_examples=D2Vmodel.corpus_count, epochs=20)
+            self.D2Vmodel = D2Vmodel
+            D2Vmodel.save("D2Vmodel")
+            print ("Doc2vec model was made with \"" + self.fill_type + "\" corpus")
+        
+                   
         
     def similarity_analysis(self, smart):
         """Function: Analyzes all corpus against corpus main article and returns results in pandas dataframe.
@@ -511,23 +525,40 @@ def is_over_threshold(similarity, *args):
 # Initiate corpus with article of focus
 if __name__ == "__main__":
     start = time.time()
-    import argparse
+    
+    ## Receive args
     parser = argparse.ArgumentParser()
     parser.add_argument("size", type=int)
-    parser.add_argument("fill_type")
     args = parser.parse_args()
-    corpus = Corpus("https://en.wikipedia.org/wiki/IBM_mainframe")
-    corpus.fill_corpus(args.size, args.fill_type)
+    
+    ## Create and fill corpora 
+    corpus_related = Corpus("https://en.wikipedia.org/wiki/IBM_mainframe")
+    corpus_random = Corpus("https://en.wikipedia.org/wiki/IBM_mainframe")
+    corpus_fifty_fifty = Corpus("https://en.wikipedia.org/wiki/IBM_mainframe")
+    corpus_related.fill_corpus(args.size, "all_related")
+    corpus_random.fill_corpus(args.size, "all_random")
+    corpus_fifty_fifty.fill_corpus(args.size, "fifty_fifty")
+    
+    ## Issue #1 in https://github.com/danielobrien3/HBC-Text-Similarity-Analysis
     corpus.filter_corpus_by_frequency()
-
-    smartResults = corpus.similarity_analysis(True)
-    dumbResults = corpus.similarity_analysis(False)
+    
+    ## Get (multitiered AND regular analysis) results of each corpus
+    smart_results_related = corpus_related.similarity_analysis(True)
+    dumb_results_related = corpus_related.similarity_analysis(False)
+    
+    smart_results_random = corpus_random.similarity_analysis(True)
+    dumb_results_random = corpus_random.similarity_analysis(False)
+    
+    smart_results_fifty = corpus_fifty_fifty.similarity_analysis(True)
+    dumb_results_fifty = corpus_fifty_fifty.similarity_analysis(False)
+    
+    
     end = time.time()
     print("Took " + str(end - start) + "s to run")
     fileOne = "multitiered_size_"  + str(args.size) + "_corpus_" +args.fill_type +".csv"
     fileTwo = "regular_size_"  + str(args.size) + "_corpus_" +args.fill_type +".csv"
-    smartResults.to_csv(fileOne)
-    dumbResults.to_csv(fileTwo)
+    smart_results_related.to_csv(fileOne)
+    dumb_results_related.to_csv(fileTwo)
 
 
 # In[ ]:
