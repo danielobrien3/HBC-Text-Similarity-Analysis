@@ -226,8 +226,8 @@ class WikiArticle:
            Returns Pandas series to be used in forming a dataframe result."""
         ## Check main title tier
         if(is_smart == True):
-            a_vec = self.w2v_vector(self.main_title, w2v_model, index2word_set);
-            b_vec = article.w2v_vector(article.main_title, w2v_model, index2word_set);
+            a_vec = d2v_model.infer_vector(self.pre_process(self.main_title))
+            b_vec = d2v_model.infer_vector(article.pre_process(article.main_title))
             main_title_comparison = vec_cosine_analysis(a_vec, b_vec)
             if is_over_threshold(main_title_comparison):
                 main_title_tier = True
@@ -236,8 +236,8 @@ class WikiArticle:
 
             ## Check sub title tier
             article.get_secondary_titles()
-            a_vec = self.w2v_vector(self.secondary_titles, w2v_model, index2word_set)
-            b_vec = article.w2v_vector(article.secondary_titles, w2v_model, index2word_set)
+            a_vec = d2v_model.infer_vector(self.pre_process(self.secondary_titles))
+            b_vec = d2v_model.infer_vector(article.pre_process(article.secondary_titles))
             secondary_title_comparison = vec_cosine_analysis(a_vec, b_vec)
             if is_over_threshold(secondary_title_comparison):
                 secondary_title_tier = True
