@@ -38,6 +38,7 @@ import time
 from os import path
 import argparse
 from gensim.models import Word2Vec
+import csv
 
 
 
@@ -552,7 +553,6 @@ def is_over_threshold(similarity, *args):
 
 # Initiate corpus with article of focus
 if __name__ == "__main__":
-    start = time.time()
     
     ## Receive args
     parser = argparse.ArgumentParser()
@@ -577,20 +577,59 @@ if __name__ == "__main__":
     
     
     ## Get (multitiered AND regular analysis) results of each corpus
+    
+    # related corpus
+    start = time.time()
     smart_results_related = corpus_related.similarity_analysis(True, d2v_model, w2v_model, index2word_set)
-    dumb_results_related = corpus_related.similarity_analysis(False, d2v_model, w2v_model, index2word_set)
-    
-    smart_results_random = corpus_random.similarity_analysis(True, d2v_model, w2v_model, index2word_set)
-    dumb_results_random = corpus_random.similarity_analysis(False, d2v_model, w2v_model, index2word_set)
-    
-    smart_results_fifty = corpus_fifty_fifty.similarity_analysis(True, d2v_model, w2v_model, index2word_set)
-    dumb_results_fifty = corpus_fifty_fifty.similarity_analysis(False, d2v_model, w2v_model, index2word_set)
-    
-    
     end = time.time()
-    print("Took " + str(end - start) + "s to run")
+    smart_results_related_time = end - start
     
-    ## Export results in csv files
+    start = time.time()
+    dumb_results_related = corpus_related.similarity_analysis(False, d2v_model, w2v_model, index2word_set)
+    end = time.time()
+    dumb_results_related_time = end - start
+    
+    
+    # random corpus
+    start = time.time()
+    smart_results_random = corpus_random.similarity_analysis(True, d2v_model, w2v_model, index2word_set)
+    end = time.time()
+    smart_results_random_time = end - start
+    
+    start = time.time()
+    dumb_results_random = corpus_random.similarity_analysis(False, d2v_model, w2v_model, index2word_set)
+    end = time.time()
+    dumb_results_random_time = end - start
+    
+    # fifty fifty corpus
+    start = time.time()
+    smart_results_fifty = corpus_fifty_fifty.similarity_analysis(True, d2v_model, w2v_model, index2word_set)
+    end = time.time()
+    smart_results_fifty_time = end - start
+    
+    start = time.time()
+    dumb_results_fifty = corpus_fifty_fifty.similarity_analysis(False, d2v_model, w2v_model, index2word_set)
+    end = time.time()
+    dumb_results_fifty_time = end - start
+    
+    
+    ## Export results in csv files, storing time results first
+    # Creates the csv if it doesn't exist
+    if not(path.exists("time_results.csv")):
+        with open('time_results.csv', 'w') as csvfile:
+            filewriter = csv.writer(csvfile)
+            filewriter.writerow(['Corpus Type', 'Multi-tiered', 'Size', 'Time elapsed (seconds)'])
+        
+    # Writes results to csv
+    with open('time_results.csv', 'a') as csvfile:
+        filewriter = csv.writer(csvfile)
+        filewriter.writerow(['related', 'TRUE', args.size, smart_results_related_time])
+        filewriter.writerow(['related', 'FALSE', args.size, dumb_results_related_time])
+        filewriter.writerow(['random', 'TRUE', args.size, smart_results_random_time])
+        filewriter.writerow(['random', 'FALSE', args.size, dumb_results_random_time])
+        filewriter.writerow(['fifty_fifty', 'TRUE', args.size, smart_results_fifty_time])
+        filewriter.writerow(['fifty_fifty', 'FALSE', args.size, dumb_results_fifty_time])
+    
     # Create file names first.
     smart_related_file = "multitiered_"  + str(args.size) + "_related.csv"
     dumb_related_file = fileTwo = "regular_"  + str(args.size) + "_related.csv"
