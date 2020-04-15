@@ -39,6 +39,7 @@ from os import path
 import argparse
 from gensim.models import Word2Vec
 import csv
+import random
 
 
 
@@ -207,7 +208,7 @@ def mergeDict(dict1, dict2):
 class WikiArticle:
     def __init__(self, url):
         self.url = url
-        self.soup = BeautifulSoup(requests.get(self.url).text, "html")
+        self.soup = BeautifulSoup(requests.get(self.url).text, features="html.parser")
         self.main_title = self.soup.find_all("h1")[0].get_text()
         self.secondary_titles = ""
         self.main_text = ""
@@ -557,12 +558,23 @@ if __name__ == "__main__":
     ## Receive args
     parser = argparse.ArgumentParser()
     parser.add_argument("size", type=int)
+    parser.add_argument("--seed", type=int)
     args = parser.parse_args()
     
+    wikiUrl = "https://en.wikipedia.org/wiki/"
+    
+    seeds = ["IBM_mainframe", "Data_analysis", "Algorithm"]
+    if args.seed:
+        seed = args.seed
+    else:
+        seed = random.randrange(0,3,1)
+    
+    wikiUrl+= seeds[seed]
+    
     ## Create and fill corpora 
-    corpus_related = Corpus("https://en.wikipedia.org/wiki/IBM_mainframe")
-    corpus_random = Corpus("https://en.wikipedia.org/wiki/IBM_mainframe")
-    corpus_fifty_fifty = Corpus("https://en.wikipedia.org/wiki/IBM_mainframe")
+    corpus_related = Corpus(wikiUrl)
+    corpus_random = Corpus(wikiUrl)
+    corpus_fifty_fifty = Corpus(wikiUrl)
     corpus_related.fill_corpus(args.size, "all_related")
     corpus_random.fill_corpus(args.size, "all_random")
     corpus_fifty_fifty.fill_corpus(args.size, "fifty_fifty")
@@ -618,17 +630,17 @@ if __name__ == "__main__":
     if not(path.exists("time_results.csv")):
         with open('time_results.csv', 'w') as csvfile:
             filewriter = csv.writer(csvfile)
-            filewriter.writerow(['Corpus Type', 'Multi-tiered', 'Size', 'Time elapsed (seconds)'])
+            filewriter.writerow(['Corpus Type', 'Multi-tiered', 'Size', 'Time elapsed (seconds)', 'Seed'])
         
     # Writes results to csv
     with open('time_results.csv', 'a') as csvfile:
         filewriter = csv.writer(csvfile)
-        filewriter.writerow(['related', 'TRUE', args.size, smart_results_related_time])
-        filewriter.writerow(['related', 'FALSE', args.size, dumb_results_related_time])
-        filewriter.writerow(['random', 'TRUE', args.size, smart_results_random_time])
-        filewriter.writerow(['random', 'FALSE', args.size, dumb_results_random_time])
-        filewriter.writerow(['fifty_fifty', 'TRUE', args.size, smart_results_fifty_time])
-        filewriter.writerow(['fifty_fifty', 'FALSE', args.size, dumb_results_fifty_time])
+        filewriter.writerow(['related', 'TRUE', args.size, smart_results_related_time, seeds[seed]])
+        filewriter.writerow(['related', 'FALSE', args.size, dumb_results_related_time, seeds[seed]])
+        filewriter.writerow(['random', 'TRUE', args.size, smart_results_random_time, None])
+        filewriter.writerow(['random', 'FALSE', args.size, dumb_results_random_time, None])
+        filewriter.writerow(['fifty_fifty', 'TRUE', args.size, smart_results_fifty_time, seeds[seed]])
+        filewriter.writerow(['fifty_fifty', 'FALSE', args.size, dumb_results_fifty_time, seeds[seed]])
     
     # Create file names first.
     smart_related_file = "multitiered_"  + str(args.size) + "_related.csv"
