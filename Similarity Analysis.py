@@ -86,10 +86,14 @@ class Corpus:
             article_counter = 0
 
             while len(self.articles) < size:
-                related_articles = self.articles[article_counter].get_related()
-                if(related_articles != False):
-                    self.articles.extend(self.articles[article_counter].get_related())
+                try:
+                    related_articles = self.articles[article_counter].get_related()
+                    if(related_articles != False):
+                        self.articles.extend(self.articles[article_counter].get_related())
+                except:
+                    print("Error with getting related article for " + self.articles[article_counter].main_title)
                 article_counter +=1
+                
                 
         if(mode=="fifty_fifty"):
             #Start filling corpus with articles related to main article
@@ -563,7 +567,7 @@ if __name__ == "__main__":
     
     wikiUrl = "https://en.wikipedia.org/wiki/"
     
-    seeds = ["IBM_mainframe", "Data_analysis", "Algorithm"]
+    seeds = ["IBM_mainframe", "Information_technology", "Algorithm"]
     if args.seed:
         seed = args.seed
     else:
