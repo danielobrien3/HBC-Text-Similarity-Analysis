@@ -141,6 +141,7 @@ cython_debug/
 # data results
 *.csv
 *.xlsx
+/runs
 
 # Models
 D2Vmodel
