@@ -17,3 +17,9 @@ random,TRUE,1000,29.38996434211731
 random,FALSE,1000,98.3049521446228
 fifty_fifty,TRUE,1000,142.45121788978577
 fifty_fifty,FALSE,1000,229.71328473091125
+related,TRUE,1,5.224001884460449,Information_technology
+related,FALSE,1,5.1922643184661865,Information_technology
+random,TRUE,1,0.4158821105957031,
+random,FALSE,1,0.6102790832519531,
+fifty_fifty,TRUE,1,5.111693859100342,Information_technology
+fifty_fifty,FALSE,1,5.024978876113892,Information_technology
