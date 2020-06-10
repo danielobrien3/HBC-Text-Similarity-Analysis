@@ -6,11 +6,8 @@
 
 # In an attempt to make this notebook as organized (re: readable) as possible, I will explain its structure here. 
 ## The first cell is dedicated to initializing all dependencies used. 
-## Each cell after is then dedicated to defining each function in the module
+## Each cell after is then dedicated to defining either a class or function in the module
 ### Finally, the last cell is this project's driver. That is where we will be putting the pieces of the puzzle together.
-
-
-# In[3]:
 
 
 # Imports. 'Requests' for https requests. 'BeautifulSoup' for html scraping. 'Pandas' for data analysis. 
@@ -203,8 +200,6 @@ def mergeDict(dict1, dict2):
             dict3[key] = (value + dict1[key])
     return Counter(dict3)
 
-
-# In[5]:
 
 
 # wikiArticle class. Named 'wikiArticle' for lack of inspiration. Will hold all relevant data on an article. 
@@ -549,7 +544,7 @@ def is_over_threshold(similarity, *args):
     return (similarity >= threshold)
 
 
-# In[9]:
+
 
 
 ### Driver ###
@@ -665,32 +660,6 @@ if __name__ == "__main__":
     smart_results_fifty.to_csv(smart_fifty_fifty_file)
     dumb_results_fifty.to_csv(dumb_fifty_fifty_file)
 
-
-# In[ ]:
-
-
-
-
-
-# In[9]:
-
-
-
-
-
-# In[ ]:
-
-
-
-
-
-# In[ ]:
-
-
-
-
-
-# In[ ]:
 
 
 
